@@ -15,7 +15,6 @@ export default function ClientPage() {
   const [isCopyModified, setIsCopyModified] = useState(false);
   const [originalCopy, setOriginalCopy] = useState("");
 
-  // ... (useEffect, updateStatus, etc.)
   useEffect(() => {
     async function fetchData() {
       const { data: projectData, error: pError } = await supabase
@@ -66,61 +65,7 @@ export default function ClientPage() {
     });
   };
 
-  // ... (rest of the component JSX)
   if (loading) return <div className="flex justify-center min-h-screen items-center"><Loader2 className="animate-spin" /></div>;
-
-  return (
-    <main className="max-w-3xl mx-auto p-6 pb-20">
-      <header className="bg-white p-8 rounded-xl shadow-sm border border-gray-200 mb-8 text-center">
-        <h1 className="text-3xl font-bold text-gray-900">{project?.project_name}</h1>
-      </header>
-
-      <div className={`bg-white p-8 rounded-2xl shadow-sm border-2 mb-12 transition-colors ${isCopyModified ? 'border-amber-400' : 'border-gray-100'}`}>
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wider flex items-center gap-2">
-            <MessageSquare className="w-4 h-4" />
-            Legenda / Copy do Projeto
-          </h3>
-          {isCopyModified && (
-            <button
-              onClick={async () => {
-                await supabase.from("projects").update({ copy_text: copyText }).eq("id", id);
-                setOriginalCopy(copyText);
-                setIsCopyModified(false);
-                alert("Legenda atualizada!");
-              }}
-              className="text-sm bg-amber-500 text-white px-3 py-1 rounded-lg hover:bg-amber-600"
-            >
-              Salvar Alteração
-            </button>
-          )}
-        </div>
-        
-        <textarea
-          className="w-full text-gray-800 bg-gray-50 p-4 rounded-xl border border-blue-200 outline-none mb-4"
-          rows={6}
-          value={copyText}
-          onChange={handleCopyChange}
-        />
-
-        {isCopyModified && (
-          <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
-            <p className="text-xs font-bold text-gray-500 mb-2 uppercase">Visualização de Alterações:</p>
-            <div className="whitespace-pre-wrap text-sm leading-relaxed">{renderDiff()}</div>
-          </div>
-        )}
-      </div>
-    // ...
-
-
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
-        <p className="mt-4 text-gray-600">Carregando material...</p>
-      </div>
-    );
-  }
 
   if (!project) {
     return (
@@ -142,7 +87,7 @@ export default function ClientPage() {
         <div className="flex justify-between items-center mb-2">
           <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wider flex items-center gap-2">
             <MessageSquare className="w-4 h-4" />
-            Legenda / Copy do Projeto {isCopyModified && <span className="text-amber-600">(Alterado)</span>}
+            Legenda / Copy do Projeto {isCopyModified && <span className="text-amber-600 font-bold">(Alterações Pendentes)</span>}
           </h3>
           {isCopyModified && (
             <button
@@ -154,16 +99,25 @@ export default function ClientPage() {
               }}
               className="text-sm bg-amber-500 text-white px-3 py-1 rounded-lg hover:bg-amber-600"
             >
-              Salvar Nova Legenda
+              Salvar Alteração
             </button>
           )}
         </div>
+        
         <textarea
           className={`w-full p-4 rounded-xl border-l-4 whitespace-pre-wrap leading-relaxed outline-none transition-colors ${isCopyModified ? 'text-blue-600 bg-blue-50 border-blue-400' : 'text-gray-800 bg-gray-50 border-blue-500'}`}
           rows={6}
           value={copyText}
           onChange={handleCopyChange}
         />
+
+        {/* Diff View visível se o texto atual for diferente do original */}
+        {(copyText !== originalCopy) && (
+          <div className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
+            <p className="text-xs font-bold text-gray-500 mb-2 uppercase">Visualização de Alterações:</p>
+            <div className="whitespace-pre-wrap text-sm leading-relaxed">{renderDiff()}</div>
+          </div>
+        )}
       </div>
 
       <div className="space-y-12">
