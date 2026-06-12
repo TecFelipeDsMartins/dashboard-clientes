@@ -71,6 +71,16 @@ export default function ClientPage() {
         <p className="text-gray-600 mt-2">Olá, {project.client_name}! Revise o material abaixo.</p>
       </header>
 
+      <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 mb-12">
+        <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wider mb-2 flex items-center gap-2">
+          <MessageSquare className="w-4 h-4" />
+          Legenda / Copy do Projeto
+        </h3>
+        <p className="text-gray-800 bg-gray-50 p-4 rounded-xl border-l-4 border-blue-500 whitespace-pre-wrap leading-relaxed">
+          {project.copy_text || "Sem legenda informada para este projeto."}
+        </p>
+      </div>
+
       <div className="space-y-12">
         {project.project_items.map((item, index) => (
           <div key={item.id} className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
@@ -93,20 +103,10 @@ export default function ClientPage() {
             </div>
 
             <div className="p-8">
-              <div className="mb-6">
-                <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wider mb-2 flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4" />
-                  Legenda Sugerida
-                </h3>
-                <p className="text-gray-800 bg-gray-50 p-4 rounded-xl border-l-4 border-blue-500 whitespace-pre-wrap leading-relaxed">
-                  {item.copy_text || project.copy_text || "Sem legenda."}
-                </p>
-              </div>
-
               {item.status !== "approved" && (
                 <div className="space-y-4">
                   <textarea
-                    placeholder="Se precisar de ajustes, descreva aqui..."
+                    placeholder="Se precisar de ajustes neste item, descreva aqui..."
                     className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-shadow"
                     value={feedback[item.id] || ""}
                     onChange={(e) => setFeedback({ ...feedback, [item.id]: e.target.value })}
