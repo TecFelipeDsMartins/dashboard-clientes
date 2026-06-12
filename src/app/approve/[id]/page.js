@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useParams } from "next/navigation";
 import { CheckCircle, AlertCircle, Loader2, MessageSquare } from "lucide-react";
+import { diffWords } from "diff";
 
 export default function ClientPage() {
   const { id } = useParams();
@@ -14,18 +15,18 @@ export default function ClientPage() {
   const [isCopyModified, setIsCopyModified] = useState(false);
   const [originalCopy, setOriginalCopy] = useState("");
 
+  // ... (useEffect, updateStatus, etc.)
   useEffect(() => {
     async function fetchData() {
       const { data: projectData, error: pError } = await supabase
         .from("projects")
-        .select(`*, project_items (*, order:created_at)`) // order:created_at is used for sorting
+        .select(`*, project_items (*, order:created_at)`)
         .eq("id", id)
         .single();
 
       if (pError) {
         console.error(pError);
       } else {
-        // Ordenar itens explicitamente por data de criação
         const sortedItems = projectData.project_items.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
         setProject({ ...projectData, project_items: sortedItems });
         setCopyText(projectData.copy_text || "");
@@ -57,7 +58,59 @@ export default function ClientPage() {
     }
   };
 
-  // ... (rest of the component)
+  const renderDiff = () => {
+    const diffs = diffWords(originalCopy, copyText);
+    return diffs.map((part, index) => {
+      const color = part.added ? 'text-amber-600 bg-amber-100' : part.removed ? 'text-red-600 line-through bg-red-100' : 'text-gray-800';
+      return <span key={index} className={color}>{part.value}</span>;
+    });
+  };
+
+  // ... (rest of the component JSX)
+  if (loading) return <div className="flex justify-center min-h-screen items-center"><Loader2 className="animate-spin" /></div>;
+
+  return (
+    <main className="max-w-3xl mx-auto p-6 pb-20">
+      <header className="bg-white p-8 rounded-xl shadow-sm border border-gray-200 mb-8 text-center">
+        <h1 className="text-3xl font-bold text-gray-900">{project?.project_name}</h1>
+      </header>
+
+      <div className={`bg-white p-8 rounded-2xl shadow-sm border-2 mb-12 transition-colors ${isCopyModified ? 'border-amber-400' : 'border-gray-100'}`}>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wider flex items-center gap-2">
+            <MessageSquare className="w-4 h-4" />
+            Legenda / Copy do Projeto
+          </h3>
+          {isCopyModified && (
+            <button
+              onClick={async () => {
+                await supabase.from("projects").update({ copy_text: copyText }).eq("id", id);
+                setOriginalCopy(copyText);
+                setIsCopyModified(false);
+                alert("Legenda atualizada!");
+              }}
+              className="text-sm bg-amber-500 text-white px-3 py-1 rounded-lg hover:bg-amber-600"
+            >
+              Salvar Alteração
+            </button>
+          )}
+        </div>
+        
+        <textarea
+          className="w-full text-gray-800 bg-gray-50 p-4 rounded-xl border border-blue-200 outline-none mb-4"
+          rows={6}
+          value={copyText}
+          onChange={handleCopyChange}
+        />
+
+        {isCopyModified && (
+          <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+            <p className="text-xs font-bold text-gray-500 mb-2 uppercase">Visualização de Alterações:</p>
+            <div className="whitespace-pre-wrap text-sm leading-relaxed">{renderDiff()}</div>
+          </div>
+        )}
+      </div>
+    // ...
 
 
   if (loading) {
