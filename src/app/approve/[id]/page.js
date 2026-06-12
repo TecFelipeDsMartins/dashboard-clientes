@@ -10,24 +10,36 @@ export default function ClientPage() {
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [feedback, setFeedback] = useState({});
+  const [copyText, setCopyText] = useState("");
+  const [isCopyModified, setIsCopyModified] = useState(false);
+  const [originalCopy, setOriginalCopy] = useState("");
 
   useEffect(() => {
     async function fetchData() {
       const { data: projectData, error: pError } = await supabase
         .from("projects")
-        .select(`*, project_items (*)`)
+        .select(`*, project_items (*, order:created_at)`) // order:created_at is used for sorting
         .eq("id", id)
         .single();
 
       if (pError) {
         console.error(pError);
       } else {
-        setProject(projectData);
+        // Ordenar itens explicitamente por data de criação
+        const sortedItems = projectData.project_items.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        setProject({ ...projectData, project_items: sortedItems });
+        setCopyText(projectData.copy_text || "");
+        setOriginalCopy(projectData.copy_text || "");
       }
       setLoading(false);
     }
     fetchData();
   }, [id]);
+
+  const handleCopyChange = (e) => {
+    setCopyText(e.target.value);
+    setIsCopyModified(e.target.value !== originalCopy);
+  };
 
   const updateStatus = async (itemId, status) => {
     const { error } = await supabase
@@ -38,13 +50,15 @@ export default function ClientPage() {
     if (error) {
       alert("Erro ao atualizar status");
     } else {
-      // Atualizar localmente
       const newItems = project.project_items.map((it) =>
-        it.id === itemId ? { ...it, status, feedback: feedback[itemId] } : it
+        it.id === itemId ? { ...it, status, feedback: feedback[itemId] || it.feedback } : it
       );
       setProject({ ...project, project_items: newItems });
     }
   };
+
+  // ... (rest of the component)
+
 
   if (loading) {
     return (
@@ -71,14 +85,32 @@ export default function ClientPage() {
         <p className="text-gray-600 mt-2">Olá, {project.client_name}! Revise o material abaixo.</p>
       </header>
 
-      <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 mb-12">
-        <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wider mb-2 flex items-center gap-2">
-          <MessageSquare className="w-4 h-4" />
-          Legenda / Copy do Projeto
-        </h3>
-        <p className="text-gray-800 bg-gray-50 p-4 rounded-xl border-l-4 border-blue-500 whitespace-pre-wrap leading-relaxed">
-          {project.copy_text || "Sem legenda informada para este projeto."}
-        </p>
+      <div className={`bg-white p-8 rounded-2xl shadow-sm border-2 mb-12 transition-colors ${isCopyModified ? 'border-amber-400' : 'border-gray-100'}`}>
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wider flex items-center gap-2">
+            <MessageSquare className="w-4 h-4" />
+            Legenda / Copy do Projeto {isCopyModified && <span className="text-amber-600">(Alterado)</span>}
+          </h3>
+          {isCopyModified && (
+            <button
+              onClick={async () => {
+                await supabase.from("projects").update({ copy_text: copyText }).eq("id", id);
+                setOriginalCopy(copyText);
+                setIsCopyModified(false);
+                alert("Legenda atualizada!");
+              }}
+              className="text-sm bg-amber-500 text-white px-3 py-1 rounded-lg hover:bg-amber-600"
+            >
+              Salvar Nova Legenda
+            </button>
+          )}
+        </div>
+        <textarea
+          className="w-full text-gray-800 bg-gray-50 p-4 rounded-xl border-l-4 border-blue-500 whitespace-pre-wrap leading-relaxed outline-none"
+          rows={6}
+          value={copyText}
+          onChange={handleCopyChange}
+        />
       </div>
 
       <div className="space-y-12">
