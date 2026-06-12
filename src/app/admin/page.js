@@ -133,7 +133,15 @@ export default function AdminDashboard() {
             <option value="video">Vídeo</option>
           </select>
           <textarea placeholder="Legenda (Copy)" className="w-full border p-2 rounded" rows={3} value={copyText} onChange={e=>setCopyText(e.target.value)} />
-          <input type="file" multiple onChange={e=>setFiles(Array.from(e.target.files))} className="w-full" />
+          <div className="flex flex-col gap-2">
+            <label className="cursor-pointer bg-blue-50 border border-blue-200 text-blue-700 px-4 py-2 rounded-lg font-medium hover:bg-blue-100 transition-colors text-center">
+              Selecionar Arquivos
+              <input type="file" multiple className="hidden" onChange={e=>setFiles(Array.from(e.target.files))} />
+            </label>
+            <p className="text-sm text-gray-500 text-center">
+              {files.length > 0 ? `${files.length} arquivos selecionados` : "Nenhum arquivo selecionado"}
+            </p>
+          </div>
           <button type="submit" disabled={loading} className="bg-blue-600 text-white px-6 py-2 rounded">{loading ? "Processando..." : "Criar"}</button>
         </form>
         {generatedLink && <div className="mt-4 p-3 bg-green-100 rounded">Link: {generatedLink}</div>}
