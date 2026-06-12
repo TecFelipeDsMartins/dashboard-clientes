@@ -3,14 +3,14 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { v4 as uuidv4 } from "uuid";
-import { Upload, CheckCircle, Copy, Loader2, Plus, FolderOpen, ExternalLink } from "lucide-react";
+import { Upload, CheckCircle, Copy, Loader2, Plus, FolderOpen, ExternalLink, Trash2 } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminDashboard() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(false);
   
-  // States para novo projeto
+  // ... (states mantidos)
   const [clientName, setClientName] = useState("");
   const [projectName, setProjectName] = useState("");
   const [postType, setPostType] = useState("static");
@@ -31,6 +31,18 @@ export default function AdminDashboard() {
     if (data) setProjects(data);
   }
 
+  const deleteProject = async (id) => {
+    if (!confirm("Tem certeza que deseja deletar este projeto e todo o material dele?")) return;
+    
+    const { error } = await supabase.from("projects").delete().eq("id", id);
+    if (error) {
+      alert("Erro ao deletar: " + error.message);
+    } else {
+      fetchProjects();
+    }
+  };
+
+  // ... (handleSubmit mantido)
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (files.length === 0 || !clientName || !projectName) {
@@ -92,13 +104,20 @@ export default function AdminDashboard() {
                 <p className="font-bold">{p.project_name}</p>
                 <p className="text-sm text-gray-500">{p.client_name} • {p.post_type}</p>
               </div>
-              <Link href={`/approve/${p.id}`} className="text-blue-600 flex items-center gap-1 hover:underline">
-                Acessar <ExternalLink size={16}/>
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link href={`/approve/${p.id}`} className="text-blue-600 flex items-center gap-1 hover:underline">
+                  Acessar <ExternalLink size={16}/>
+                </Link>
+                <button onClick={() => deleteProject(p.id)} className="text-red-500 hover:text-red-700">
+                  <Trash2 size={18}/>
+                </button>
+              </div>
             </div>
           ))}
         </div>
       </section>
+      {/* ... (resto do formulário mantido) */}
+
 
       {/* Novo Projeto */}
       <section className="bg-white p-8 rounded-xl border">
