@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { v4 as uuidv4 } from "uuid";
-import { Upload, CheckCircle, Copy, Loader2 } from "lucide-react";
+import { Upload, CheckCircle, Copy, Loader2, Plus } from "lucide-react";
 
 export default function AdminPage() {
+  const [projects, setProjects] = useState([]);
+  const [selectedProjectId, setSelectedProjectId] = useState("new");
   const [clientName, setClientName] = useState("");
   const [projectName, setProjectName] = useState("");
   const [copyText, setCopyText] = useState("");
@@ -13,6 +15,14 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
   const [generatedLink, setGeneratedLink] = useState("");
+
+  useEffect(() => {
+    async function fetchProjects() {
+      const { data } = await supabase.from("projects").select("id, client_name, project_name");
+      if (data) setProjects(data);
+    }
+    fetchProjects();
+  }, []);
 
   const handleFileChange = (e) => {
     if (e.target.files.length > 0) {
@@ -22,8 +32,8 @@ export default function AdminPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (files.length === 0 || !clientName || !projectName) {
-      alert("Preencha todos os campos e selecione os arquivos.");
+    if (files.length === 0) {
+      alert("Selecione os arquivos.");
       return;
     }
 
@@ -31,18 +41,27 @@ export default function AdminPage() {
     setStatus("Fazendo upload das mídias...");
 
     try {
-      // 1. Criar o projeto
-      const { data: project, error: pError } = await supabase
-        .from("projects")
-        .insert([{ client_name: clientName, project_name: projectName, copy_text: copyText }])
-        .select()
-        .single();
+      let projectId = selectedProjectId;
 
-      if (pError) throw pError;
+      // 1. Criar novo projeto se necessário
+      if (projectId === "new") {
+        if (!clientName || !projectName) {
+          alert("Preencha nome do cliente e projeto.");
+          setLoading(false);
+          return;
+        }
+        const { data: project, error: pError } = await supabase
+          .from("projects")
+          .insert([{ client_name: clientName, project_name: projectName, copy_text: copyText }])
+          .select()
+          .single();
+        if (pError) throw pError;
+        projectId = project.id;
+      }
 
       const items = [];
 
-      // 2. Upload de cada arquivo e criar itens
+      // 2. Upload de cada arquivo
       for (const file of files) {
         const fileExt = file.name.split(".").pop();
         const fileName = `${uuidv4()}.${fileExt}`;
@@ -59,28 +78,28 @@ export default function AdminPage() {
           .getPublicUrl(filePath);
 
         items.push({
-          project_id: project.id,
+          project_id: projectId,
           media_url: publicUrl,
           media_type: file.type.startsWith("video") ? "video" : "image",
+          copy_text: copyText, // Aplicando a copy nos itens para o cliente visualizar
         });
       }
 
-      // 3. Salvar itens no banco
+      // 3. Salvar itens
       const { error: iError } = await supabase.from("project_items").insert(items);
       if (iError) throw iError;
 
-      const link = `${window.location.origin}/approve/${project.id}`;
+      const link = `${window.location.origin}/approve/${projectId}`;
       setGeneratedLink(link);
       setStatus("Sucesso!");
       
-      // Reset form
       setClientName("");
       setProjectName("");
       setCopyText("");
       setFiles([]);
     } catch (error) {
       console.error(error);
-      alert("Erro ao criar projeto: " + error.message);
+      alert("Erro: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -95,28 +114,41 @@ export default function AdminPage() {
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Cliente</label>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Projeto</label>
+            <select
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none"
+              value={selectedProjectId}
+              onChange={(e) => setSelectedProjectId(e.target.value)}
+            >
+              <option value="new">+ Criar Novo Projeto</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>{p.client_name} - {p.project_name}</option>
+              ))}
+            </select>
+          </div>
+
+          {selectedProjectId === "new" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <input
                 type="text"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="Nome do Cliente"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none"
                 value={clientName}
                 onChange={(e) => setClientName(e.target.value)}
                 required
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Projeto</label>
               <input
                 type="text"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="Nome do Projeto"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none"
                 value={projectName}
                 onChange={(e) => setProjectName(e.target.value)}
                 required
               />
             </div>
-          </div>
+          )}
+
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Copy / Legenda</label>
