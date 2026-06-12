@@ -135,6 +135,13 @@ export default function ClientPage() {
             </div>
 
             <div className="p-8">
+              {item.status === "adjustment" && item.feedback && (
+                <div className="mb-4 p-4 bg-amber-50 border-l-4 border-amber-500 rounded-r-xl">
+                  <p className="text-sm font-bold text-amber-800 mb-1">Ajuste solicitado anteriormente:</p>
+                  <p className="text-sm text-amber-900">{item.feedback}</p>
+                </div>
+              )}
+
               {item.status !== "approved" && (
                 <div className="space-y-4">
                   <textarea
