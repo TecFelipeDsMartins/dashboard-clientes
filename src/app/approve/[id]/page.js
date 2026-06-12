@@ -106,7 +106,7 @@ export default function ClientPage() {
           )}
         </div>
         <textarea
-          className="w-full text-gray-800 bg-gray-50 p-4 rounded-xl border-l-4 border-blue-500 whitespace-pre-wrap leading-relaxed outline-none"
+          className={`w-full p-4 rounded-xl border-l-4 whitespace-pre-wrap leading-relaxed outline-none transition-colors ${isCopyModified ? 'text-blue-600 bg-blue-50 border-blue-400' : 'text-gray-800 bg-gray-50 border-blue-500'}`}
           rows={6}
           value={copyText}
           onChange={handleCopyChange}
